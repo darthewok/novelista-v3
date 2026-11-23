@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from app import events, jobs
 from app.enums import ChapterStatus
 from app.pipeline import outline_gen
-from app.pipeline._common import parse_outline_units
+from app.pipeline._common import parse_outline_units, read_reference_material
 from app.schemas import JobOut, TextPayload
 from app.storage import atomic_write_text, backup_prev, read_text
 from app.store import Book, ChapterRec, book_dir, book_lock, get_book, save_book
@@ -90,7 +90,7 @@ async def generate_outline(book_id: str) -> dict[str, Any]:
 
     async def _run(job: jobs.Job) -> None:
         bdir = book_dir(book_id)
-        ref = read_text(bdir / "uploads" / "_extracted.md")
+        ref = read_reference_material(bdir)
 
         async def _cb(tok: str) -> None:
             events.publish(job.id, {"type": "token", "text": tok})

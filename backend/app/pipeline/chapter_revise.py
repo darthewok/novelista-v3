@@ -9,6 +9,7 @@ from app.enums import POV
 from app.pipeline import ai_checker
 from app.pipeline._common import (
     WarnCB,
+    allowed_name_sources,
     earlier_chapter_texts,
     is_american_english,
     strip_llm_chatter,
@@ -152,7 +153,7 @@ async def generate(
         )
     )
 
-    allowed_src = f"{book.title}\n{book.idea or ''}\n{read_text(bdir / 'seed.txt')}"
+    allowed_src = allowed_name_sources(book, bdir)
     us_english = is_american_english(book, bdir)
     scenes_raw = _SCENE_SEP_RE.split(current_text.strip())
     is_scene_rev = not wants_cut and cur_words >= 2300 and len(scenes_raw) >= 2

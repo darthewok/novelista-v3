@@ -8,7 +8,14 @@ from app import llm_client
 from app.enums import POV
 from app.formats import get_profile
 from app.pipeline import ai_checker, scene_planner
-from app.pipeline._common import WarnCB, earlier_chapter_texts, is_american_english, strip_llm_chatter, warn_if_cut
+from app.pipeline._common import (
+    WarnCB,
+    allowed_name_sources,
+    earlier_chapter_texts,
+    is_american_english,
+    strip_llm_chatter,
+    warn_if_cut,
+)
 from app.pipeline.characters_gen import scrub_banned_names
 from app.pipeline.context_builder import build_chapter_context, build_static_system, extract_opening_word
 from app.pipeline.directives import build_directives, clamp_max_tokens, per_unit_word_target
@@ -428,7 +435,7 @@ async def generate(
             stop = cont.stop_reason
         warn_if_cut(stop, on_warning, f"{meta['unit_label']} {n} draft")
 
-    allowed_src = f"{book.title}\n{book.idea or ''}\n{read_text(bdir / 'seed.txt')}"
+    allowed_src = allowed_name_sources(book, bdir)
     us_english = is_american_english(book, bdir)
     text = scrub_banned_names(text, allowed_src)
     text = normalize_prose_typography(text, american_english=us_english)

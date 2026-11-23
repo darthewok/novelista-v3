@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from app import events, jobs
+from app import events, jobs, obsidian
 from app.enums import ChapterStatus
 from app.formats import get_profile
 from app.pipeline import (
@@ -455,15 +455,20 @@ async def _draft_worker(
     make_scenes: bool,
 ) -> None:
     bdir = book_dir(book_id)
-    b = get_book(book_id)
-    if not b:
-        return
 
     async def _tok(tok: str) -> None:
         events.publish(job.id, {"type": "token", "text": tok, "chapter": n})
 
     def _warn(msg: str) -> None:
         events.publish(job.id, {"type": "warning", "message": msg})
+
+    sync_res = await obsidian.maybe_auto_sync(book_id, on_warning=_warn)
+    if sync_res and sync_res.get("synced_roles"):
+        events.publish(job.id, {"type": "status", "message": f"Synced Obsidian vault ({', '.join(sync_res['synced_roles'])})..."})
+
+    b = get_book(book_id)
+    if not b:
+        return
 
     if make_scenes and not scene_path(bdir, n).exists():
         events.publish(job.id, {"type": "status", "message": f"Planning scenes for unit {n}..."})
@@ -520,9 +525,14 @@ async def revise_chapter_endpoint(book_id: str, n: int, body: ReviseNotes) -> di
         def _warn(msg: str) -> None:
             events.publish(job.id, {"type": "warning", "message": msg})
 
+        sync_res = await obsidian.maybe_auto_sync(book_id, on_warning=_warn)
+        if sync_res and sync_res.get("synced_roles"):
+            events.publish(job.id, {"type": "status", "message": f"Synced Obsidian vault ({', '.join(sync_res['synced_roles'])})..."})
+
+        fresh_b = get_book(book_id) or b
         brief = read_text(brief_path(bdir, n))
         revised, no_op = await chapter_revise.generate(
-            b, bdir, n, current_text=cur, notes=body.notes, brief=brief, stream_cb=_tok, on_warning=_warn
+            fresh_b, bdir, n, current_text=cur, notes=body.notes, brief=brief, stream_cb=_tok, on_warning=_warn
         )
         final_text = cur
         if not no_op and revised.strip():

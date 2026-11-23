@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen, Layers } from "lucide-react";
 import { api, Book } from "@/lib/api";
 import { useAction } from "@/lib/useAction";
 import { useToast } from "@/lib/toast";
@@ -53,6 +53,9 @@ export default function DashboardPage() {
               <option value="novel">Full Novel</option>
             </select>
           )}
+          <Link to="/books/obsidian" className="btn-secondary">
+            <Layers className="h-4 w-4 text-accent" /> Connect Obsidian Vault
+          </Link>
           <Link to="/books/new" className="btn-primary">
             <Plus className="h-4 w-4" /> New Book
           </Link>
@@ -74,9 +77,14 @@ export default function DashboardPage() {
               Choose Picture Book, Short Story, Novella, or Novel — calibrate voice, plan scenes, and export straight to EPUB & KDP Print PDF.
             </p>
           </div>
-          <Link to="/books/new" className="btn-primary inline-flex">
-            <Plus className="h-4 w-4" /> Create a Book
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <Link to="/books/obsidian" className="btn-secondary inline-flex">
+              <Layers className="h-4 w-4 text-accent" /> Connect Obsidian Vault
+            </Link>
+            <Link to="/books/new" className="btn-primary inline-flex">
+              <Plus className="h-4 w-4" /> Create a Book
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

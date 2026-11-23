@@ -47,10 +47,137 @@ export interface Book {
   genre: string;
   language: string;
   idea: string;
+  source_mode?: "wizard" | "obsidian";
+  obsidian_vault_path?: string;
   front_matter: FrontMatter;
   created_at: string;
   updated_at: string;
   chapters: ChapterSummary[];
+}
+
+export type ObsidianRole =
+  | "ignore"
+  | "seed"
+  | "world"
+  | "characters"
+  | "voice"
+  | "canon"
+  | "mystery"
+  | "outline"
+  | "chapter"
+  | "reference";
+
+export interface ObsidianBrowseResult {
+  current: string;
+  parent: string | null;
+  is_obsidian_vault: boolean;
+  quick_roots: Array<{ label: string; path: string }>;
+  directories: Array<{ name: string; path: string; is_obsidian_vault: boolean }>;
+}
+
+export interface ObsidianFolderSummary {
+  path: string;
+  label: string;
+  note_count: number;
+  total_words: number;
+  suggested_role?: ObsidianRole;
+  mapped_role?: string;
+}
+
+export interface ObsidianNoteInfo {
+  rel_path: string;
+  name: string;
+  title: string;
+  folder: string;
+  hash: string;
+  mtime: string;
+  word_count: number;
+  char_count: number;
+  tags: string[];
+  wikilinks: string[];
+  frontmatter: Record<string, unknown>;
+  excerpt: string;
+  suggested_role: ObsidianRole;
+  suggestion_reason: string;
+  effective_role?: ObsidianRole;
+  change?: string;
+}
+
+export interface ObsidianMappingConfig {
+  vault_path: string;
+  folder_rules: Record<string, string>;
+  file_overrides: Record<string, string>;
+  tag_rules: Record<string, string>;
+  write_back_dir: string;
+  auto_sync_before_draft: boolean;
+  import_chapters: boolean;
+}
+
+export interface ObsidianScanResult {
+  vault_path: string;
+  is_obsidian_vault: boolean;
+  total_notes: number;
+  truncated: boolean;
+  folders: ObsidianFolderSummary[];
+  notes: ObsidianNoteInfo[];
+  suggested_folder_rules: Record<string, string>;
+  suggested_file_overrides: Record<string, string>;
+  suggested_book: {
+    title: string;
+    genre: string;
+    pov: string;
+    tense: string;
+    book_format: string;
+    audience: string;
+    language: string;
+    chapter_count: number;
+    target_words: number;
+  };
+  role_counts: Record<string, number>;
+}
+
+export interface ObsidianSyncReport {
+  synced_at: string;
+  synced_roles: string[];
+  imported_chapters: number[];
+  needs_outline_structuring: boolean;
+  warnings: string[];
+  note_count: number;
+  artifact_stats: Record<string, { chars?: number; words?: number; exists?: boolean; count?: number; drafted?: number }>;
+}
+
+export interface ObsidianVaultStatus {
+  linked: boolean;
+  status: "unlinked" | "missing_vault" | "in_sync" | "out_of_sync";
+  vault_path: string;
+  is_obsidian_vault?: boolean;
+  last_synced_at: string | null;
+  added: Array<{ rel_path: string; role: string }>;
+  modified: Array<{ rel_path: string; role: string }>;
+  deleted: Array<{ rel_path: string; role: string }>;
+  unmapped_new: Array<{ rel_path: string; suggested_role: string }>;
+  changed_roles: string[];
+  folders: ObsidianFolderSummary[];
+  notes: ObsidianNoteInfo[];
+  mapped_counts: Record<string, number>;
+  artifact_stats: Record<string, { chars?: number; words?: number; exists?: boolean; count?: number; drafted?: number }>;
+  needs_outline_structuring: boolean;
+  config: ObsidianMappingConfig | null;
+  error: string | null;
+}
+
+export interface ObsidianSuggestMappingResult {
+  folder_rules: Record<string, string>;
+  file_overrides: Record<string, string>;
+  suggested_book: Record<string, unknown>;
+  rationale: string;
+}
+
+export interface ObsidianPushResult {
+  vault_path: string;
+  write_back_dir: string;
+  written_files: string[];
+  count: number;
 }
 
 export interface FormatProfile {
@@ -373,4 +500,63 @@ export const api = {
     req<JobOut[]>(`/api/jobs/active${bookId ? `?book_id=${encodeURIComponent(bookId)}` : ""}`),
   getJob: (jobId: string) => req<JobOut>(`/api/jobs/${jobId}`),
   cancelJob: (jobId: string) => req<{ cancelled: boolean }>(`/api/jobs/${jobId}/cancel`, { method: "POST" }),
+
+  // Obsidian Linked Live Vault
+  obsidianBrowse: (path = "") =>
+    req<ObsidianBrowseResult>("/api/obsidian/browse", { method: "POST", body: JSON.stringify({ path }) }),
+  obsidianScan: (vault_path: string, write_back_dir = "Novelista Export") =>
+    req<ObsidianScanResult>("/api/obsidian/scan", {
+      method: "POST",
+      body: JSON.stringify({ vault_path, write_back_dir }),
+      timeoutMs: 60_000,
+    }),
+  obsidianSuggestMapping: (vault_path: string, write_back_dir = "Novelista Export") =>
+    req<ObsidianSuggestMappingResult>("/api/obsidian/suggest-mapping", {
+      method: "POST",
+      body: JSON.stringify({ vault_path, write_back_dir }),
+      timeoutMs: 90_000,
+    }),
+  createObsidianBook: (body: Record<string, unknown>) =>
+    req<{ book: Book; sync: ObsidianSyncReport }>("/api/obsidian/books", {
+      method: "POST",
+      body: JSON.stringify(body),
+      timeoutMs: 60_000,
+    }),
+  getBookObsidian: (id: string) => req<ObsidianVaultStatus>(`/api/books/${id}/obsidian`),
+  putBookObsidian: (id: string, body: ObsidianMappingConfig & { sync_now?: boolean }) =>
+    req<{ book: Book; sync: ObsidianSyncReport | null; status: ObsidianVaultStatus }>(`/api/books/${id}/obsidian`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      timeoutMs: 60_000,
+    }),
+  unlinkBookObsidian: (id: string) =>
+    req<{ book: Book; unlinked: boolean }>(`/api/books/${id}/obsidian`, { method: "DELETE" }),
+  syncBookObsidian: (id: string, body?: { roles?: string[]; import_chapters?: boolean }) =>
+    req<{ book: Book; sync: ObsidianSyncReport; status: ObsidianVaultStatus }>(`/api/books/${id}/obsidian/sync`, {
+      method: "POST",
+      body: JSON.stringify(body || {}),
+      timeoutMs: 60_000,
+    }),
+  suggestBookObsidianMapping: (id: string) =>
+    req<ObsidianSuggestMappingResult>(`/api/books/${id}/obsidian/suggest-mapping`, {
+      method: "POST",
+      timeoutMs: 90_000,
+    }),
+  structureObsidianOutline: (id: string) =>
+    req<JobOut>(`/api/books/${id}/obsidian/structure-outline`, { method: "POST" }),
+  pushBookObsidian: (
+    id: string,
+    body?: {
+      write_back_dir?: string;
+      include_manuscript?: boolean;
+      include_chapters?: boolean;
+      include_summary?: boolean;
+      include_canon?: boolean;
+      accepted_only?: boolean;
+    },
+  ) =>
+    req<ObsidianPushResult>(`/api/books/${id}/obsidian/push`, {
+      method: "POST",
+      body: JSON.stringify(body || {}),
+    }),
 };

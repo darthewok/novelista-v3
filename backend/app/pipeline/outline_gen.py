@@ -8,6 +8,7 @@ from app.enums import POV
 from app.formats import get_profile
 from app.pipeline._common import (
     WarnCB,
+    allowed_name_sources,
     extract_plot_spine,
     is_mystery_genre,
     outline_block,
@@ -197,7 +198,7 @@ async def generate(
         stream_cb=stream_cb,
     )
     warn_if_cut(res.stop_reason, on_warning, "Outline")
-    allowed_src = f"{book.title}\n{seed}\n{ref_text}"
+    allowed_src = allowed_name_sources(book, bdir, ref_text)
     out = scrub_banned_names(strip_llm_chatter(res.text), allowed_src)
 
     needs_spine = prof.craft_profile == "novel" and "## plot logic" not in out.lower()

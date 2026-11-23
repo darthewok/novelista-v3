@@ -9,7 +9,7 @@ from typing import Any
 
 from app.enums import Audience, BookFormat, POV, Tense, WritingStyle
 from app.formats import AUDIENCE_GRADE_BANDS, get_profile
-from app.pipeline._common import earlier_chapter_texts, load_prompt, pov_name
+from app.pipeline._common import allowed_name_sources, earlier_chapter_texts, load_prompt, pov_name
 from app.storage import read_text
 from app.store import Book, read_ignored_findings
 
@@ -1163,7 +1163,7 @@ def scan(
             )
 
     if book:
-        seed_low = f"{book.title}\n{book.idea or ''}".lower()
+        seed_low = allowed_name_sources(book, bdir).lower()
         for cname in sorted(_CLICHE_AI_NAME_WORDS):
             if cname in seed_low:
                 continue

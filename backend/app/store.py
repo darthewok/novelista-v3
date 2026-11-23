@@ -99,6 +99,8 @@ class Book:
     genre: str = ""
     language: str = "English"
     idea: str = ""
+    source_mode: str = "wizard"
+    obsidian_vault_path: str = ""
     front_matter: FrontMatter = field(default_factory=FrontMatter)
     created_at: str = field(default_factory=utcnow_iso)
     updated_at: str = field(default_factory=utcnow_iso)
@@ -120,6 +122,8 @@ class Book:
             "genre": self.genre,
             "language": self.language,
             "idea": self.idea,
+            "source_mode": self.source_mode,
+            "obsidian_vault_path": self.obsidian_vault_path,
             "front_matter": asdict(self.front_matter),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -128,6 +132,8 @@ class Book:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "Book":
+        raw_mode = str(d.get("source_mode") or "wizard").strip().lower()
+        mode = raw_mode if raw_mode in {"wizard", "obsidian"} else "wizard"
         return cls(
             id=str(d["id"]),
             title=str(d.get("title") or "Untitled"),
@@ -143,6 +149,8 @@ class Book:
             genre=str(d.get("genre") or ""),
             language=str(d.get("language") or "English"),
             idea=str(d.get("idea") or ""),
+            source_mode=mode,
+            obsidian_vault_path=str(d.get("obsidian_vault_path") or ""),
             front_matter=FrontMatter.from_dict(d.get("front_matter")),
             created_at=str(d.get("created_at") or utcnow_iso()),
             updated_at=str(d.get("updated_at") or utcnow_iso()),
@@ -293,10 +301,13 @@ def create_book(
     genre: str = "",
     language: str = "English",
     idea: str = "",
+    source_mode: str = "wizard",
+    obsidian_vault_path: str = "",
     front_matter: FrontMatter | None = None,
 ) -> Book:
     prof = get_profile(book_format)
     bid = str(uuid.uuid4())
+    mode = source_mode if source_mode in {"wizard", "obsidian"} else "wizard"
     b = Book(
         id=bid,
         title=(title or "Untitled").strip() or "Untitled",
@@ -311,6 +322,8 @@ def create_book(
         genre=genre.strip(),
         language=(language or "English").strip() or "English",
         idea=(idea or "").strip(),
+        source_mode=mode,
+        obsidian_vault_path=(obsidian_vault_path or "").strip(),
         front_matter=front_matter or FrontMatter(),
     )
     bdir = book_dir(bid)

@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Trash2, BookOpen } from "lucide-react";
+import { ArrowRight, Trash2, BookOpen, Layers } from "lucide-react";
 import { Book } from "@/lib/api";
 import { FORMAT_CARDS } from "@/lib/catalog";
 
 function smartResumePath(book: Book): string {
+  if (book.source_mode === "obsidian" && !book.chapters.length) return `/books/${book.id}/vault`;
   if (!book.idea?.trim()) return `/books/${book.id}/seed`;
   if (!book.chapters.length) return `/books/${book.id}/outline`;
   const nextPending = book.chapters.find((c) => c.status === "pending");
@@ -45,11 +46,17 @@ export function BookCard({
     <div className="card p-4 flex flex-col justify-between gap-3 transition hover:border-accent/50">
       <div className="space-y-2.5">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-md bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">
               <BookOpen className="h-3 w-3" />
               {fmt?.label || book.book_format}
             </span>
+            {book.source_mode === "obsidian" && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                <Layers className="h-3 w-3" />
+                Obsidian
+              </span>
+            )}
             <span className="rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-muted capitalize">
               {book.status}
             </span>

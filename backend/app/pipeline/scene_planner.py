@@ -10,6 +10,7 @@ from app.enums import POV
 from app.formats import get_profile
 from app.pipeline._common import (
     WarnCB,
+    allowed_name_sources,
     extract_plot_spine,
     foreshadowing_for_chapter,
     is_mystery_genre,
@@ -208,7 +209,7 @@ async def generate_scenes(
                         sc[k] = val or "Advance chapter beat cleanly."
         payload["scenes"] = scenes_list
 
-    allowed_src = f"{book.title}\n{book.idea or ''}\n{read_text(bdir / 'seed.txt')}"
+    allowed_src = allowed_name_sources(book, bdir)
     for sc_item in payload.get("scenes") or []:
         if isinstance(sc_item, dict):
             for k, v in list(sc_item.items()):

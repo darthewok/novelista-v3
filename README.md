@@ -92,6 +92,7 @@ Connect local or cloud endpoints and assign a different model to each of the **1
 Novelista v3 is a ground-up architectural successor to v2 (`novelista-v2`), resolving structural continuity leaks, small-model collapse modes, concurrency races, and UI roughness:
 
 - **One-Click Whole-Manuscript Audit Fix (`audit.py` / `audit.tsx`):** Check off specific global or per-chapter audit issues (or click **Fix All**), automatically revise unlocked drafted chapters, fix remaining hard errors, refresh running continuity memory, and optionally re-run the audit.
+- **Linked Live Obsidian Vault Flow (`obsidian.py` / `/books/obsidian`):** Connect any arbitrary local Obsidian vault or book subfolder instead of using the step-by-step wizard — map folders, tags, frontmatter, or individual notes (with optional AI auto-mapping), clean `[[wikilinks]]`/`![[embeds]]`/Dataview blocks, detect live vault edits, auto-sync before drafting or revising, structure raw outline notes with AI, and write chapters, manuscripts, summaries, and canon back to an isolated vault folder.
 - **Genre-Aware Pipeline Routing (`is_mystery_genre`):** Decouples non-mystery stories (literary drama, cozy fiction, romance, historical, children's) from hardcoded crime/arrest/police assumptions across outlining, scene planning, canon extraction, manuscript auditing, and KDP metadata.
 - **Single-Pass Continuous Chapters (`<= 2,500w`) + Scene-by-Scene Long Chapters:** Short and medium units draft as 1 unified scene card to eliminate mid-chapter `* * *` plot reboots, while longer chapters (`>= 2,500w`) use bounded scene cards with boundary-replay stripping.
 - **49-Rule AI Checker & Em-Dash Guardrail:** Adds token-meltdown detection, family-surname-safe honorific and pronoun checks, Day-1 `world.md`-aware future-clue locks, standalone ending `sequel_bait` checks, and deterministic conversion of Unicode em-dashes/en-dashes/double-hyphens (`—`, `–`, `--`) into clean ASCII punctuation (`-` / ` - `).
@@ -183,11 +184,17 @@ Supported environment overrides (`backend/app/config.py`):
    - `Max Polish Passes` (default `2`) and `Target Tells / 1,000w` (default `4.0`)
 6. Click **Save Settings** — this automatically verifies connectivity and surfaces any `< 7B` model warnings.
 
-### Step 2 — Create a New Book (`/books/new`)
+### Step 2 — Create a New Book (`/books/new` or `/books/obsidian`)
+**Option A — Step-by-Step Wizard (`/books/new`):**
 1. Click **New Book** on the Library dashboard.
 2. Pick one of the **6 Formats** (`Picture Book`, `Early Reader`, `Chapter Book / Middle Grade`, `Short Story`, `Novella`, `Full Novel`) — defaults for Audience, Units, Target Words, and KDP trim adjust automatically.
 3. Choose **POV**, **Tense**, **Language** (`English (US)` / `English (UK)`), and **Writing Style** (18 presets or `Custom Author Voice`).
 4. Enter your story **Premise / Idea** (or leave it ready to brainstorm in Seed).
+
+**Option B — Connect an Obsidian Vault (`/books/obsidian`):**
+1. Click **Connect Obsidian Vault** on the Library dashboard (or toggle to **Obsidian Vault** from New Book) and browse to any local Obsidian vault or book subfolder.
+2. Map folders, individual notes, tags, or frontmatter (`seed`, `world`, `characters`, `voice`, `canon`, `mystery`, `outline`, `chapter`, `reference`, or `ignore`) — either with automatic heuristics or **Auto-Map with AI** — then review inferred book settings and click **Create Linked Book & Sync**.
+3. Use the **Vault** workspace tab to monitor live changes in your vault, trigger manual or automatic pre-draft syncs, run **Structure Outline with AI** if your plot notes don't yet use `### Ch N: Title` headings, and **Push to Vault** to write drafted chapters, full manuscripts, `summary.md`, and `canon.md` back into an isolated vault export subfolder.
 
 ### Step 3 — Build the Foundation (`Seed → World → Cast → Voice → Canon & Memory`)
 Follow the top phase stepper in order (steps marked `(opt)` can be skipped for Picture Books or Short Stories):
@@ -271,12 +278,13 @@ novelista-v3/
 │   │   ├── formats.py              6 format profiles + Flesch-Kincaid audience bands
 │   │   ├── settings.py             6 providers, 12 task roles, masked key storage
 │   │   ├── store.py / storage.py   Atomic JSON/Markdown store, locks, version backups
+│   │   ├── obsidian.py             Linked live Obsidian vault scanner, mapper, compiler & push-back
 │   │   ├── events.py / jobs.py     Multi-subscriber SSE stream + pauseable batch queue
 │   │   ├── llm_client.py           Provider clients, retries, JSON mode, prompt caching
-│   │   ├── routers/                REST & SSE endpoints (books, seed, foundation, outline, chapters, audit, uploads, settings, stream)
+│   │   ├── routers/                REST & SSE endpoints (books, seed, foundation, outline, chapters, audit, uploads, obsidian, settings, stream)
 │   │   ├── pipeline/               19 craft/generation/guardrail modules + prompts/
 │   │   └── export/                 Pure-Python EPUB 3, KDP PDF, DOCX, Markdown & ZIP
-│   └── tests/                      66 automated unit & router integration tests
+│   └── tests/                      71 automated unit & router integration tests
 ├── frontend/
 │   ├── dist/                       Prebuilt offline-verified SPA (served directly by FastAPI)
 │   ├── src/                        React 19 + TypeScript + Tailwind + TanStack Query source
@@ -286,7 +294,7 @@ novelista-v3/
 ```
 
 Each book you create is stored cleanly under `data/novels/<book_id>/`:
-- `book.json` — metadata, format, status, chapter index, front/back matter, ignored findings
+- `book.json` — metadata, format, status, chapter index, front/back matter, ignored findings (`obsidian.json` stores live vault mapping & sync hashes when linked)
 - `seed.txt`, `world.md`, `characters.md`, `voice.md`, `canon.md`, `summary.md`, `mystery.md`, `outline.md`
 - `continuity.json`, `kdp_kit.json`, `kdp_kit.md`
 - `chapters/` (`ch_001.md` + `ch_001.v0.md` snapshots), `scenes/`, `briefs/`, `reports/`, `uploads/`
@@ -295,7 +303,7 @@ Each book you create is stored cleanly under `data/novels/<book_id>/`:
 
 ## Development & Testing
 
-**Backend tests (66 tests — isolated via temp `NOVELISTA_DATA_DIR`, no live API keys required):**
+**Backend tests (71 tests — isolated via temp `NOVELISTA_DATA_DIR`, no live API keys required):**
 
 ```bash
 # Windows

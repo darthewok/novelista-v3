@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 
 from app import events, jobs
 from app.pipeline import seed_gen
+from app.pipeline._common import read_reference_material
 from app.schemas import JobOut, SeedChoose, TextPayload
 from app.storage import atomic_write_text, read_text
 from app.store import Book, book_dir, book_lock, get_book, save_book
@@ -85,7 +86,7 @@ async def post_candidates(book_id: str) -> dict[str, Any]:
 
     async def _run(job: jobs.Job) -> None:
         bdir = book_dir(book_id)
-        ref = read_text(bdir / "uploads" / "_extracted.md")
+        ref = read_reference_material(bdir)
 
         async def _cb(tok: str) -> None:
             events.publish(job.id, {"type": "token", "text": tok})

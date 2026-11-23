@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit2, Search, Sliders, X } from "lucide-react";
+import { Edit2, Layers, RefreshCw, Search, Sliders, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAction } from "@/lib/useAction";
 import { useToast } from "@/lib/toast";
@@ -29,6 +29,22 @@ export default function BookLayout() {
     queryKey: ["formats"],
     queryFn: api.getFormats,
     staleTime: Infinity,
+  });
+
+  const isObsidian = book?.source_mode === "obsidian";
+  const { data: vaultStatus } = useQuery({
+    queryKey: ["obsidian", id],
+    queryFn: () => api.getBookObsidian(id!),
+    enabled: Boolean(id && isObsidian),
+    refetchInterval: 10_000,
+  });
+
+  const quickSyncAct = useAction(async () => {
+    if (!id) return;
+    const res = await api.syncBookObsidian(id);
+    qc.invalidateQueries({ queryKey: ["book", id] });
+    qc.invalidateQueries({ queryKey: ["obsidian", id] });
+    toast.success(`Synced ${res.sync.synced_roles.length} role(s) from Obsidian.`);
   });
 
   useEffect(() => {
@@ -123,7 +139,40 @@ export default function BookLayout() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {isObsidian && vaultStatus?.linked && (
+              <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface-2/80 px-2 py-1 text-[11px]">
+                <Link
+                  to={`/books/${book.id}/vault`}
+                  className={`inline-flex items-center gap-1 font-medium ${
+                    vaultStatus.status === "out_of_sync"
+                      ? "text-amber-700 dark:text-amber-300"
+                      : vaultStatus.status === "missing_vault"
+                        ? "text-rose-600 dark:text-rose-300"
+                        : "text-emerald-700 dark:text-emerald-300"
+                  }`}
+                >
+                  <Layers className="h-3 w-3" />
+                  <span>
+                    {vaultStatus.status === "out_of_sync"
+                      ? `${vaultStatus.added.length + vaultStatus.modified.length + vaultStatus.deleted.length} vault change(s)`
+                      : vaultStatus.status === "missing_vault"
+                        ? "Vault missing"
+                        : "Vault synced"}
+                  </span>
+                </Link>
+                {vaultStatus.status === "out_of_sync" && (
+                  <button
+                    type="button"
+                    onClick={() => quickSyncAct.run()}
+                    disabled={quickSyncAct.busy}
+                    className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-fg hover:opacity-90 inline-flex items-center gap-1 ml-1"
+                  >
+                    <RefreshCw className={`h-2.5 w-2.5 ${quickSyncAct.busy ? "animate-spin" : ""}`} /> Sync
+                  </button>
+                )}
+              </div>
+            )}
             <button type="button" onClick={() => setShowSearch(true)} className="btn-secondary text-xs">
               <Search className="h-3.5 w-3.5" /> Find <kbd className="text-[10px] opacity-60">Ctrl+K</kbd>
             </button>
@@ -151,7 +200,17 @@ export default function BookLayout() {
         >
           <div className="card w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h2 className="text-lg font-semibold">Edit Book Setup</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold">Edit Book Setup</h2>
+                <Link
+                  to={`/books/${book.id}/vault`}
+                  onClick={() => setShowMetaModal(false)}
+                  className="btn-secondary text-xs py-1"
+                >
+                  <Layers className="h-3.5 w-3.5 text-accent" />
+                  {isObsidian ? "Manage Vault" : "Link Obsidian Vault"}
+                </Link>
+              </div>
               <button type="button" onClick={() => setShowMetaModal(false)} className="btn-ghost p-1">
                 <X className="h-4 w-4" />
               </button>

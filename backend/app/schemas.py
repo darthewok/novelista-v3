@@ -103,6 +103,8 @@ class BookOut(BaseModel):
     genre: str
     language: str
     idea: str
+    source_mode: str = "wizard"
+    obsidian_vault_path: str = ""
     front_matter: FrontMatterSchema
     created_at: str
     updated_at: str
@@ -172,3 +174,50 @@ class JobOut(BaseModel):
     error: str | None = None
     chapter: int | None = None
     batch_id: str | None = None
+
+
+class ObsidianBrowseRequest(BaseModel):
+    path: str = Field(default="", max_length=1000)
+
+
+class ObsidianScanRequest(BaseModel):
+    vault_path: str = Field(min_length=1, max_length=1000)
+    write_back_dir: str = Field(default="Novelista Export", max_length=240)
+
+
+class ObsidianMappingConfig(BaseModel):
+    vault_path: str = Field(min_length=1, max_length=1000)
+    folder_rules: dict[str, str] = Field(default_factory=dict)
+    file_overrides: dict[str, str] = Field(default_factory=dict)
+    tag_rules: dict[str, str] = Field(default_factory=dict)
+    write_back_dir: str = Field(default="Novelista Export", max_length=240)
+    auto_sync_before_draft: bool = True
+    import_chapters: bool = False
+
+
+class ObsidianCreateBookRequest(BookCreate):
+    vault_path: str = Field(min_length=1, max_length=1000)
+    folder_rules: dict[str, str] = Field(default_factory=dict)
+    file_overrides: dict[str, str] = Field(default_factory=dict)
+    tag_rules: dict[str, str] = Field(default_factory=dict)
+    write_back_dir: str = Field(default="Novelista Export", max_length=240)
+    auto_sync_before_draft: bool = True
+    import_chapters: bool = False
+
+
+class ObsidianLinkUpdateRequest(ObsidianMappingConfig):
+    sync_now: bool = True
+
+
+class ObsidianSyncRequest(BaseModel):
+    roles: list[str] | None = None
+    import_chapters: bool | None = None
+
+
+class ObsidianPushRequest(BaseModel):
+    write_back_dir: str | None = Field(default=None, max_length=240)
+    include_manuscript: bool = True
+    include_chapters: bool = True
+    include_summary: bool = True
+    include_canon: bool = True
+    accepted_only: bool = False

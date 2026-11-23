@@ -50,6 +50,34 @@ def voice_or_default(bdir: Path) -> str:
     return load_prompt("voice_default.md")
 
 
+def allowed_name_sources(book: Book | None, bdir: Path | None, extra: str = "") -> str:
+    """Return all user-provided name reference text so explicit cast names are never scrubbed as clichés."""
+    parts: list[str] = []
+    if book:
+        if book.title:
+            parts.append(book.title)
+        if book.idea:
+            parts.append(book.idea)
+    if bdir:
+        for fname in ("seed.txt", "characters.md"):
+            txt = read_text(bdir / fname).strip()
+            if txt:
+                parts.append(txt)
+    if extra and extra.strip():
+        parts.append(extra.strip())
+    return "\n".join(parts)
+
+
+def read_reference_material(bdir: Path, max_chars: int = 120_000) -> str:
+    """Combine uploaded reference extracts and synced Obsidian vault reference notes."""
+    chunks: list[str] = []
+    for rel in ("_extracted.md", "_vault_ref.md"):
+        txt = read_text(bdir / "uploads" / rel).strip()
+        if txt:
+            chunks.append(txt)
+    return "\n\n---\n\n".join(chunks)[:max_chars]
+
+
 def approx_tokens(text: str) -> int:
     return max(1, int(len(text) / 3.7))
 

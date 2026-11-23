@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from app import events, jobs
 from app.pipeline import canon_gen, characters_gen, voice_gen, world_gen
-from app.pipeline._common import load_prompt
+from app.pipeline._common import load_prompt, read_reference_material
 from app.schemas import GenerateOpts, JobOut, TextPayload
 from app.storage import atomic_write_text, backup_prev, read_text, restore_prev
 from app.store import Book, book_dir, book_lock, get_book, save_book
@@ -121,7 +121,7 @@ async def generate_artifact(book_id: str, kind: ArtifactKind, body: GenerateOpts
 
     async def _run(job: jobs.Job) -> None:
         bdir = book_dir(book_id)
-        ref = read_text(bdir / "uploads" / "_extracted.md")
+        ref = read_reference_material(bdir)
 
         async def _cb(tok: str) -> None:
             events.publish(job.id, {"type": "token", "text": tok})

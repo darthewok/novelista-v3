@@ -6,7 +6,15 @@ from pathlib import Path
 from app import llm_client
 from app.formats import get_profile
 from app.pipeline import ai_checker
-from app.pipeline._common import WarnCB, outline_block, parse_llm_json, pov_name, upsert_markdown_section, warn_if_cut
+from app.pipeline._common import (
+    WarnCB,
+    allowed_name_sources,
+    outline_block,
+    parse_llm_json,
+    pov_name,
+    upsert_markdown_section,
+    warn_if_cut,
+)
 from app.pipeline.characters_gen import scrub_banned_names
 from app.storage import atomic_write_json, atomic_write_text, read_json, read_text
 from app.store import Book
@@ -123,7 +131,7 @@ async def update(
         summary_txt = res.text.strip()[:500]
         state_txt = ""
 
-    allowed_src = f"{book.title}\n{book.idea or ''}\n{seed_src}"
+    allowed_src = allowed_name_sources(book, bdir, seed_src)
     name_ref = f"{seed_src}\n{chars_ref}"
     summary_txt = _restore_cast_names(scrub_banned_names(summary_txt, allowed_src), name_ref)
     state_txt = _restore_cast_names(scrub_banned_names(state_txt, allowed_src), name_ref)

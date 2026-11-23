@@ -1,9 +1,12 @@
-import { Link, Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useOutletContext, useParams } from "react-router-dom";
 import { Layout } from "./Layout";
+import { Book } from "./lib/api";
 import DashboardPage from "./pages/dashboard";
 import SettingsPage from "./pages/settings";
 import NewBookPage from "./pages/books/new";
+import NewObsidianBookPage from "./pages/books/obsidian";
 import BookLayout from "./pages/books/book/layout";
+import VaultStudioPage from "./pages/books/book/vault";
 import SeedPage from "./pages/books/book/seed";
 import WorldPage from "./pages/books/book/world";
 import CharactersPage from "./pages/books/book/characters";
@@ -18,6 +21,11 @@ import ExportPage from "./pages/books/book/export";
 function KeyedChapterRoute() {
   const { id, n } = useParams();
   return <ChapterPage key={`${id}-${n}`} />;
+}
+
+function BookIndexRedirect() {
+  const { book } = useOutletContext<{ book: Book }>();
+  return <Navigate to={book?.source_mode === "obsidian" ? "vault" : "seed"} replace />;
 }
 
 function NotFoundPage() {
@@ -39,8 +47,10 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/books/new" element={<NewBookPage />} />
+        <Route path="/books/obsidian" element={<NewObsidianBookPage />} />
         <Route path="/books/:id" element={<BookLayout />}>
-          <Route index element={<Navigate to="seed" replace />} />
+          <Route index element={<BookIndexRedirect />} />
+          <Route path="vault" element={<VaultStudioPage />} />
           <Route path="seed" element={<SeedPage />} />
           <Route path="world" element={<WorldPage />} />
           <Route path="characters" element={<CharactersPage />} />

@@ -10,7 +10,7 @@ from starlette.routing import Match
 
 from app import llm_client
 from app.config import frontend_dist_dir
-from app.routers import audit, books, chapters, foundation, outline, seed, settings, stream, uploads
+from app.routers import audit, books, chapters, foundation, obsidian, outline, seed, settings, stream, uploads
 
 _FAVICON_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
@@ -37,6 +37,7 @@ for r in (
     outline.router,
     chapters.router,
     audit.router,
+    obsidian.router,
     foundation.router,
     stream.router,
 ):
