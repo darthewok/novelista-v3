@@ -1,0 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Keep built frontend SPA committed so end users don't need Node.js
+!frontend/dist/
+!frontend/dist/**
+
+# Node
+node_modules/
+*.tsbuildinfo
+
+# Local runtime state, API keys & generated books (keep empty data/novels/ folder)
+.run/
+.env
+.env.*
+data/*
+!data/novels/
+data/novels/*
+!data/novels/.gitkeep
+data/settings.json
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
